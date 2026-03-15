@@ -27,7 +27,7 @@ margin-bottom:30px;
 box-shadow:0 2px 8px rgba(0,0,0,0.08);
 }
 
-input,textarea{
+input,textarea,select{
 width:100%;
 padding:10px;
 margin:8px 0;
@@ -80,6 +80,29 @@ color:#666;
 font-size:14px;
 }
 
+.priority{
+font-size:12px;
+padding:3px 8px;
+border-radius:5px;
+margin-top:5px;
+display:inline-block;
+}
+
+.priority.low{
+background:#e3f2fd;
+color:#1565c0;
+}
+
+.priority.medium{
+background:#fff3cd;
+color:#856404;
+}
+
+.priority.high{
+background:#f8d7da;
+color:#721c24;
+}
+
 </style>
 
 </head>
@@ -92,12 +115,25 @@ font-size:14px;
 Total Tasks: {{ tasks|length }}
 </div>
 
+
+<!-- ADD TASK FORM -->
+
 <form action="/add-task" method="post">
+
 <input type="text" name="title" placeholder="Task title" required>
 
 <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
 
+<select name="priority">
+<option value="low">Low Priority</option>
+<option value="medium" selected>Medium Priority</option>
+<option value="high">High Priority</option>
+</select>
+
+<input type="date" name="due_date">
+
 <button type="submit">Add Task</button>
+
 </form>
 
 
@@ -106,6 +142,7 @@ Total Tasks: {{ tasks|length }}
 <div class="task {% if task.completed %}done{% endif %}">
 
 <div>
+
 <strong>{{ task.title }}</strong>
 
 {% if task.description %}
@@ -113,6 +150,23 @@ Total Tasks: {{ tasks|length }}
 {{ task.description }}
 </p>
 {% endif %}
+
+
+<!-- PRIORITY -->
+
+<div class="priority {{ task.priority }}">
+{{ task.priority | capitalize }} Priority
+</div>
+
+
+<!-- DUE DATE -->
+
+{% if task.due_date %}
+<p style="font-size:13px;color:#888;margin-top:4px;">
+Due: {{ task.due_date.strftime("%Y-%m-%d") }}
+</p>
+{% endif %}
+
 </div>
 
 
@@ -128,6 +182,12 @@ onclick="fetch(this.href,{method:'PATCH'});this.closest('.task').classList.add('
 {% endif %}
 
 
+<a href="#"
+onclick="editTask({{ task.id }}, '{{ task.title }}', '{{ task.description }}', '{{ task.priority }}')">
+✏ Edit
+</a>
+
+
 <a href="/api/tasks/{{ task.id }}"
 onclick="fetch(this.href,{method:'DELETE'}).then(()=>location.reload());return false;">
 🗑 Delete
@@ -138,6 +198,36 @@ onclick="fetch(this.href,{method:'DELETE'}).then(()=>location.reload());return f
 </div>
 
 {% endfor %}
+
+
+<script>
+
+function editTask(id,title,description,priority){
+
+let newTitle = prompt("Edit title:", title)
+if(newTitle === null) return
+
+let newDesc = prompt("Edit description:", description)
+if(newDesc === null) newDesc = ""
+
+let newPriority = prompt("Priority (low / medium / high):", priority)
+if(newPriority === null) newPriority = priority
+
+fetch(`/api/tasks/${id}`,{
+method:"PUT",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+title:newTitle,
+description:newDesc,
+priority:newPriority
+})
+}).then(()=>location.reload())
+
+}
+
+</script>
 
 </body>
 </html>
