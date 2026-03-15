@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -10,6 +11,14 @@ import datetime
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="TaskMaster")
+
+
+# -------- STATIC FILES --------
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# -------- TEMPLATES --------
 
 templates = Jinja2Templates(directory="templates")
 
@@ -25,12 +34,30 @@ class TaskUpdate(BaseModel):
 # -------- API ROUTES --------
 
 @app.get("/api/tasks")
-def get_tasks(db: Session = Depends(get_db)):
-    return db.query(models.Task).all()
+def get_tasks(
+    completed: bool | None = None,
+    priority: str | None = None,
+    db: Session = Depends(get_db)
+):
+
+    query = db.query(models.Task)
+
+    if completed is not None:
+        query = query.filter(models.Task.completed == completed)
+
+    if priority:
+        query = query.filter(models.Task.priority == priority)
+
+    return query.all()
 
 
 @app.post("/api/tasks")
-def create_task(title: str, description: str = "", priority: str = "medium", db: Session = Depends(get_db)):
+def create_task(
+    title: str,
+    description: str = "",
+    priority: str = "medium",
+    db: Session = Depends(get_db)
+):
 
     task = models.Task(
         title=title,
@@ -45,18 +72,20 @@ def create_task(title: str, description: str = "", priority: str = "medium", db:
     return task
 
 
-@app.patch("/api/tasks/{task_id}/complete")
-def complete_task(task_id: int, db: Session = Depends(get_db)):
+@app.patch("/api/tasks/{task_id}/toggle")
+def toggle_task(task_id: int, db: Session = Depends(get_db)):
 
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    task.completed = True
-    db.commit()
+    task.completed = not task.completed
 
-    return {"status": "updated"}
+    db.commit()
+    db.refresh(task)
+
+    return task
 
 
 @app.delete("/api/tasks/{task_id}")
@@ -73,7 +102,7 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     return {"status": "deleted"}
 
 
-# -------- EDIT TASK (FIXED) --------
+# -------- UPDATE TASK --------
 
 @app.put("/api/tasks/{task_id}")
 def update_task(task_id: int, task_data: TaskUpdate, db: Session = Depends(get_db)):
@@ -102,7 +131,10 @@ def read_root(request: Request, db: Session = Depends(get_db)):
 
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "tasks": tasks}
+        {
+            "request": request,
+            "tasks": tasks
+        }
     )
 
 
