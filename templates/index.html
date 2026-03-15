@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskMaster</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; background: #f8f9fa; }
+        h1 { color: #1a1a2e; }
+        form { background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        input, textarea { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { background: #4f46e5; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; }
+        button:hover { background: #4338ca; }
+        .task { background: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
+        .task.done { opacity: 0.5; text-decoration: line-through; }
+        .task-actions a { margin-left: 12px; color: #4f46e5; text-decoration: none; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <h1>⚡ TaskMaster</h1>
+    <form action="/add-task" method="post">
+        <input type="text" name="title" placeholder="Task title" required>
+        <textarea name="description" placeholder="Description (optional)" rows="2"></textarea>
+        <button type="submit">Add Task</button>
+    </form>
+
+    {% for task in tasks %}
+    <div class="task {% if task.completed %}done{% endif %}">
+        <div>
+            <strong>{{ task.title }}</strong>
+            {% if task.description %}<p style="margin:4px 0 0; color:#666; font-size:14px;">{{ task.description }}</p>{% endif %}
+        </div>
+        <div class="task-actions">
+            {% if not task.completed %}
+            <a href="/api/tasks/{{ task.id }}/complete" onclick="fetch(this.href, {method:'PATCH'}); this.closest('.task').classList.add('done'); return false;">✓ Done</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</body>
+</html>
